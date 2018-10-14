@@ -19,7 +19,7 @@ spec:
         image: alexlokshin/kube-secret-rotator:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 80
+        - containerPort: 8080
         args:
           - '-secret=tempsecret,default,somekey,strategy'
           - '-frequency=60'
