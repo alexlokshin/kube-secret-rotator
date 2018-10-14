@@ -21,4 +21,5 @@ spec:
         ports:
         - containerPort: 80
         args:
-          - '-secret=tempsecret,default,60'
+          - '-secret=tempsecret,default'
+          - '-frequency=60'
