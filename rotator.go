@@ -26,10 +26,12 @@ type secretDef struct {
 }
 
 type statusResponse struct {
-	Status string `json:"Status,omitempty"`
+	Status        string `json:"Status,omitempty"`
+	RotationCount int    `json:"RotationCount,omitempty"`
 }
 
 var chars = []rune("01234567890$%#!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var rotationCount = 0
 
 func randomizeString(n int) string {
 	byteArray := make([]rune, n)
@@ -40,7 +42,7 @@ func randomizeString(n int) string {
 }
 
 func getStatus(w http.ResponseWriter, r *http.Request) {
-	var response = statusResponse{Status: "OK"}
+	var response = statusResponse{Status: "OK", RotationCount: rotationCount}
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -88,6 +90,8 @@ func rotate(frequency int, secretDefs []secretDef) {
 				if err != nil {
 					fmt.Printf("Failed to create secret: %s\n", err.Error())
 				}
+
+				rotationCount++
 			} else {
 				fmt.Printf("Current value of the secret %s.%s->%s is %s.\n", secretDefs[i].namespace, secretDefs[i].name, secretDefs[i].key, secret.StringData[secretDefs[i].key])
 				if "retainPrev" == secretDefs[i].strategy {
@@ -99,6 +103,7 @@ func rotate(frequency int, secretDefs []secretDef) {
 				if err != nil {
 					fmt.Printf("Failed to update secret: %s\n", err.Error())
 				}
+				rotationCount++
 			}
 		}
 
