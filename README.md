@@ -6,7 +6,9 @@ Given the desired frequency of rotation, it can rotate one or more secrets, savi
 
 Each secret's rotation strategy is specified by the following parameters:
 
-* NAME - secret name
-* NAMESPACE - namespace to rotate the secret in
-* KEY - a key within a kubernetes secret that will be modified
-* STRATEGY - new value creation strategy 
+* `NAME` - secret name
+* `NAMESPACE` - namespace to rotate the secret in
+* `KEY` - a key within a kubernetes secret that will be modified
+* `STRATEGY` - new value creation strategy (supported values: `retainPrev`, `omitPrev`). `retainPrev` will save off an old value in the key within the same secret, appending `_PREV` to the name of the key. If `omitPrev` is specified, the old value is not saved.
+
+In case you need to rotate different secrets at different schedules, deploy several instances of `kube-secret-rotator`.

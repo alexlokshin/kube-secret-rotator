@@ -23,3 +23,16 @@ spec:
         args:
           - '-secret=tempsecret,default,somekey,strategy'
           - '-frequency=60'
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: kube-secret-rotator
+spec:
+  selector:
+    app: kube-secret-rotator
+  type: NodePort
+  ports:
+  - protocol: TCP
+    port: 8080
+    nodePort: 32001

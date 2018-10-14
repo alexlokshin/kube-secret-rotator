@@ -22,15 +22,16 @@ type secretDef struct {
 	name      string
 	namespace string
 	key       string
+	strategy  string
 }
 
-type StatusResponse struct {
+type statusResponse struct {
 	Status string `json:"Status,omitempty"`
 }
 
 var chars = []rune("01234567890$%#!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func RandomizeString(n int) string {
+func randomizeString(n int) string {
 	byteArray := make([]rune, n)
 	for i := range byteArray {
 		byteArray[i] = chars[rand.Intn(len(chars))]
@@ -38,12 +39,12 @@ func RandomizeString(n int) string {
 	return strings.Replace(b64.StdEncoding.EncodeToString([]byte(string(byteArray))), "=", "", -1)
 }
 
-func GetStatus(w http.ResponseWriter, r *http.Request) {
-	var response = StatusResponse{Status: "OK"}
+func getStatus(w http.ResponseWriter, r *http.Request) {
+	var response = statusResponse{Status: "OK"}
 	json.NewEncoder(w).Encode(response)
 }
 
-func Rotate(frequency int, secretDefs []secretDef) {
+func rotate(frequency int, secretDefs []secretDef) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err.Error())
@@ -59,12 +60,19 @@ func Rotate(frequency int, secretDefs []secretDef) {
 			secret, err := clientset.CoreV1().Secrets(secretDefs[i].namespace).Get(secretDefs[i].name, metav1.GetOptions{})
 			fmt.Printf("Rotating secret %s.%s.\n", secretDefs[i].namespace, secretDefs[i].name)
 
-			newValue := RandomizeString(40)
+			newValue := randomizeString(40)
+			t := time.Now()
+
 			if err != nil {
 				fmt.Printf("%s", err)
 				dataMap := make(map[string]string)
-				dataMap[secretDefs[i].key+"_PREV"] = newValue
+				if "retainPrev" == secretDefs[i].strategy {
+					dataMap[secretDefs[i].key+"_PREV"] = newValue
+				}
 				dataMap[secretDefs[i].key] = newValue
+
+				annotations := make(map[string]string)
+				annotations["kube-secret-rotator/rotated"] = t.Format(time.RFC850)
 
 				secret = &corev1.Secret{
 					Type: corev1.SecretTypeOpaque,
@@ -81,7 +89,9 @@ func Rotate(frequency int, secretDefs []secretDef) {
 				}
 			} else {
 				fmt.Printf("Current value of the secret %s.%s->%s is %s.\n", secretDefs[i].namespace, secretDefs[i].name, secretDefs[i].key, secret.StringData[secretDefs[i].key])
-				secret.StringData[secretDefs[i].key+"_PREV"] = secret.StringData[secretDefs[i].key]
+				if "retainPrev" == secretDefs[i].strategy {
+					secret.StringData[secretDefs[i].key+"_PREV"] = secret.StringData[secretDefs[i].key]
+				}
 				secret.StringData[secretDefs[i].key] = newValue
 				secret, err = clientset.CoreV1().Secrets(secretDefs[i].namespace).Update(secret)
 				if err != nil {
@@ -100,7 +110,7 @@ func main() {
 	var secretDefs = []secretDef{}
 	fmt.Printf("Kubernetes secret rotator.\n")
 
-	secretArg := flag.String("secret", "", "SECRET_NAME,NAMESPACE,KEY[|SECRET_NAME,NAMESPACE,KEY]")
+	secretArg := flag.String("secret", "", "SECRET_NAME,NAMESPACE,KEY,STRATEGY[|SECRET_NAME,NAMESPACE,KEY,STRATEGY]")
 	freqArg := flag.Int("frequency", 60, "Rotation frequency, minutes")
 	flag.Parse()
 
@@ -118,18 +128,18 @@ func main() {
 	for i := 0; i < len(sequences); i++ {
 		parts := strings.Split(sequences[i], ",")
 		if len(parts) != 3 {
-			panic("Invalid specification for the secret. Valid sequence is SECRET_NAME,NAMESPACE,KEY.")
+			panic("Invalid specification for the secret. Valid sequence is SECRET_NAME,NAMESPACE,KEY,STRATEGY.")
 		}
-		secret := secretDef{name: parts[0], namespace: parts[1], key: parts[2]}
+		secret := secretDef{name: parts[0], namespace: parts[1], key: parts[2], strategy: parts[3]}
 		secretDefs = append(secretDefs, secret)
 		fmt.Printf("Rotating secret `%s` in the namespace of `%s` every %d minutes.\n", secret.name, secret.namespace, frequency)
 	}
 
 	// Kicks off the endless loop
-	go Rotate(frequency, secretDefs)
+	go rotate(frequency, secretDefs)
 
 	log.Println("Starting a web server on 0.0.0.0:8080")
 	router := mux.NewRouter()
-	router.HandleFunc("/", GetStatus).Methods("GET")
+	router.HandleFunc("/", getStatus).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
