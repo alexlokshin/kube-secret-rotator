@@ -77,8 +77,9 @@ func rotate(frequency int, secretDefs []secretDef) {
 				secret = &corev1.Secret{
 					Type: corev1.SecretTypeOpaque,
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      secretDefs[i].name,
-						Namespace: secretDefs[i].namespace,
+						Name:        secretDefs[i].name,
+						Namespace:   secretDefs[i].namespace,
+						Annotations: annotations,
 					},
 					StringData: dataMap,
 				}
@@ -93,6 +94,7 @@ func rotate(frequency int, secretDefs []secretDef) {
 					secret.StringData[secretDefs[i].key+"_PREV"] = secret.StringData[secretDefs[i].key]
 				}
 				secret.StringData[secretDefs[i].key] = newValue
+				secret.ObjectMeta.Annotations["kube-secret-rotator/rotated"] = t.Format(time.RFC850)
 				secret, err = clientset.CoreV1().Secrets(secretDefs[i].namespace).Update(secret)
 				if err != nil {
 					fmt.Printf("Failed to update secret: %s\n", err.Error())
