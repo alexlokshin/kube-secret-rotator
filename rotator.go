@@ -59,6 +59,12 @@ func rotate(frequency int, secretDefs []secretDef) {
 
 	for {
 		for i := 0; i < len(secretDefs); i++ {
+			_, err := clientset.CoreV1().Namespaces().Get(secretDefs[i].namespace, metav1.GetOptions{})
+			if err != nil {
+				fmt.Printf("Cannot get the namespace %s, skipping secret creation for now.\n", secretDefs[i].namespace)
+				continue
+			}
+
 			secret, err := clientset.CoreV1().Secrets(secretDefs[i].namespace).Get(secretDefs[i].name, metav1.GetOptions{})
 			fmt.Printf("Rotating secret %s.%s.\n", secretDefs[i].namespace, secretDefs[i].name)
 
