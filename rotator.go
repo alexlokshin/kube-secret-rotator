@@ -140,7 +140,7 @@ func main() {
 
 	for i := 0; i < len(sequences); i++ {
 		parts := strings.Split(sequences[i], ",")
-		if len(parts) != 3 {
+		if len(parts) != 4 {
 			panic("Invalid specification for the secret. Valid sequence is SECRET_NAME,NAMESPACE,KEY,STRATEGY.")
 		}
 		secret := secretDef{name: parts[0], namespace: parts[1], key: parts[2], strategy: parts[3]}
