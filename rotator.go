@@ -72,7 +72,7 @@ func rotate(frequency int, secretDefs []secretDef) {
 			t := time.Now()
 
 			if err != nil {
-				fmt.Printf("%s", err)
+				fmt.Printf("%s\n", err)
 				dataMap := make(map[string]string)
 				if "retainPrev" == secretDefs[i].strategy {
 					dataMap[secretDefs[i].key+"_PREV"] = newValue
