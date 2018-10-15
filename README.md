@@ -4,6 +4,16 @@ Do you have a need to rotate secret values? Do you sign something with a secret 
 
 Given the desired frequency of rotation, it can rotate one or more secrets, saving off the old value into a separate key. This way you can validate past credentials even if the secret value has rolled. Secrets are created automatically if not present.
 
+When running on Kubernetes, `kube-secret-rotator` expects `-secret` and `-frequency` parameters, like this:
+
+`kube-secret-rotator -secret=NAME,NAMESPACE,KEY,STRATEGY -frequency=60`
+
+In case multiple values are rotated, you can specify it like this:
+
+`kube-secret-rotator -secret=NAME,NAMESPACE,KEY,STRATEGY|NAME,NAMESPACE,KEY,STRATEGY|...|NAME,NAMESPACE,KEY,STRATEGY -frequency=60`
+
+Frequency here is specified in minutes.
+
 Each secret's rotation strategy is specified by the following parameters:
 
 * `NAME` - secret name
