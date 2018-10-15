@@ -99,6 +99,15 @@ func rotate(frequency int, secretDefs []secretDef) {
 
 				rotationCount++
 			} else {
+				if secret == nil {
+					fmt.Println("No secret found.")
+					continue
+				}
+				if secret.StringData == nil {
+					fmt.Println("No secret string data found.")
+					continue
+				}
+
 				fmt.Printf("Current value of the secret %s.%s->%s is %s.\n", secretDefs[i].namespace, secretDefs[i].name, secretDefs[i].key, secret.StringData[secretDefs[i].key])
 				if "retainPrev" == secretDefs[i].strategy {
 					secret.StringData[secretDefs[i].key+"_PREV"] = secret.StringData[secretDefs[i].key]
