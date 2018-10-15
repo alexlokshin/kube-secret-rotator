@@ -68,12 +68,12 @@ func rotate(frequency int, secretDefs []secretDef) {
 			secret, err := clientset.CoreV1().Secrets(secretDefs[i].namespace).Get(secretDefs[i].name, metav1.GetOptions{})
 			fmt.Printf("Rotating secret %s.%s.\n", secretDefs[i].namespace, secretDefs[i].name)
 
-			newValue := randomizeString(40)
+			newValue := ([]byte)(randomizeString(40))
 			t := time.Now()
 
 			if err != nil {
 				fmt.Printf("%s\n", err)
-				dataMap := make(map[string]string)
+				dataMap := make(map[string][]byte)
 				if "retainPrev" == secretDefs[i].strategy {
 					dataMap[secretDefs[i].key+"_PREV"] = newValue
 				}
@@ -89,7 +89,7 @@ func rotate(frequency int, secretDefs []secretDef) {
 						Namespace:   secretDefs[i].namespace,
 						Annotations: annotations,
 					},
-					StringData: dataMap,
+					Data: dataMap,
 				}
 				fmt.Printf("Secret %s.%s doesn't exist. Creating.\n", secretDefs[i].namespace, secretDefs[i].name)
 				secret, err = clientset.CoreV1().Secrets(secretDefs[i].namespace).Create(secret)
@@ -103,16 +103,11 @@ func rotate(frequency int, secretDefs []secretDef) {
 					fmt.Println("No secret found.")
 					continue
 				}
-				if secret.StringData == nil {
-					fmt.Println("No secret string data found.")
-					continue
-				}
-
-				fmt.Printf("Current value of the secret %s.%s->%s is %s.\n", secretDefs[i].namespace, secretDefs[i].name, secretDefs[i].key, secret.StringData[secretDefs[i].key])
+				fmt.Printf("Current value of the secret %s.%s->%s is %s.\n", secretDefs[i].namespace, secretDefs[i].name, secretDefs[i].key, secret.Data[secretDefs[i].key])
 				if "retainPrev" == secretDefs[i].strategy {
-					secret.StringData[secretDefs[i].key+"_PREV"] = secret.StringData[secretDefs[i].key]
+					secret.Data[secretDefs[i].key+"_PREV"] = secret.Data[secretDefs[i].key]
 				}
-				secret.StringData[secretDefs[i].key] = newValue
+				secret.Data[secretDefs[i].key] = newValue
 				secret.ObjectMeta.Annotations["kube-secret-rotator/rotated"] = t.Format(time.RFC850)
 				secret, err = clientset.CoreV1().Secrets(secretDefs[i].namespace).Update(secret)
 				if err != nil {
