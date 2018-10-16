@@ -100,10 +100,10 @@ func rotate(frequency int, secretDefs []secretDef) {
 				rotationCount++
 			} else {
 				if secret == nil {
-					fmt.Println("No secret found.")
+					log.Printf("No existing secret found.\n")
 					continue
 				}
-				fmt.Printf("Current value of the secret %s.%s->%s is %s.\n", secretDefs[i].namespace, secretDefs[i].name, secretDefs[i].key, secret.Data[secretDefs[i].key])
+				log.Printf("Current value of the secret %s.%s->%s is %s.\n", secretDefs[i].namespace, secretDefs[i].name, secretDefs[i].key, string(secret.Data[secretDefs[i].key]))
 				if "retainPrev" == secretDefs[i].strategy {
 					secret.Data[secretDefs[i].key+"_PREV"] = secret.Data[secretDefs[i].key]
 				}
@@ -111,7 +111,7 @@ func rotate(frequency int, secretDefs []secretDef) {
 				secret.ObjectMeta.Annotations["kube-secret-rotator/rotated"] = t.Format(time.RFC850)
 				secret, err = clientset.CoreV1().Secrets(secretDefs[i].namespace).Update(secret)
 				if err != nil {
-					fmt.Printf("Failed to update secret: %s\n", err.Error())
+					log.Printf("Failed to update secret: %s\n", err.Error())
 				}
 				rotationCount++
 			}
@@ -149,7 +149,8 @@ func main() {
 		}
 		secret := secretDef{name: parts[0], namespace: parts[1], key: parts[2], strategy: parts[3]}
 		secretDefs = append(secretDefs, secret)
-		fmt.Printf("Rotating secret `%s` in the namespace of `%s` every %d minutes.\n", secret.name, secret.namespace, frequency)
+
+		log.Printf("Rotating secret `%s` in the namespace of `%s` every %d minutes.\n", secret.name, secret.namespace, frequency)
 	}
 
 	// Kicks off the endless loop
