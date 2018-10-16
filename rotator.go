@@ -61,18 +61,18 @@ func rotate(frequency int, secretDefs []secretDef) {
 		for i := 0; i < len(secretDefs); i++ {
 			_, err := clientset.CoreV1().Namespaces().Get(secretDefs[i].namespace, metav1.GetOptions{})
 			if err != nil {
-				fmt.Printf("Cannot get the namespace %s, skipping secret creation for now.\n", secretDefs[i].namespace)
+				log.Printf("Cannot get the namespace %s, skipping secret creation for now.\n", secretDefs[i].namespace)
 				continue
 			}
 
 			secret, err := clientset.CoreV1().Secrets(secretDefs[i].namespace).Get(secretDefs[i].name, metav1.GetOptions{})
-			fmt.Printf("Rotating secret %s.%s.\n", secretDefs[i].namespace, secretDefs[i].name)
+			log.Printf("Rotating secret %s.%s.\n", secretDefs[i].namespace, secretDefs[i].name)
 
 			newValue := ([]byte)(randomizeString(40))
 			t := time.Now()
 
 			if err != nil {
-				fmt.Printf("%s\n", err)
+				log.Printf("Error: %s\n", err)
 				dataMap := make(map[string][]byte)
 				if "retainPrev" == secretDefs[i].strategy {
 					dataMap[secretDefs[i].key+"_PREV"] = newValue
@@ -91,10 +91,10 @@ func rotate(frequency int, secretDefs []secretDef) {
 					},
 					Data: dataMap,
 				}
-				fmt.Printf("Secret %s.%s doesn't exist. Creating.\n", secretDefs[i].namespace, secretDefs[i].name)
+				log.Printf("Secret %s.%s doesn't exist. Creating.\n", secretDefs[i].namespace, secretDefs[i].name)
 				secret, err = clientset.CoreV1().Secrets(secretDefs[i].namespace).Create(secret)
 				if err != nil {
-					fmt.Printf("Failed to create secret: %s\n", err.Error())
+					log.Printf("Failed to create secret: %s\n", err.Error())
 				}
 
 				rotationCount++
@@ -103,7 +103,8 @@ func rotate(frequency int, secretDefs []secretDef) {
 					log.Printf("No existing secret found.\n")
 					continue
 				}
-				log.Printf("Current value of the secret %s.%s->%s is %s.\n", secretDefs[i].namespace, secretDefs[i].name, secretDefs[i].key, string(secret.Data[secretDefs[i].key]))
+				currentValue, err := b64.StdEncoding.DecodeString(string(secret.Data[secretDefs[i].key]))
+				log.Printf("Current value of the secret %s.%s->%s is %s.\n", secretDefs[i].namespace, secretDefs[i].name, secretDefs[i].key, string(currentValue))
 				if "retainPrev" == secretDefs[i].strategy {
 					secret.Data[secretDefs[i].key+"_PREV"] = secret.Data[secretDefs[i].key]
 				}
