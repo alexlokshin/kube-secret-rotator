@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -33,6 +34,11 @@ type statusResponse struct {
 var chars = []rune("01234567890$%#!abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 var rotationCount = 0
 
+func betterPanic(message string) {
+	fmt.Printf("%s\n\n", message)
+	os.Exit(1)
+}
+
 func randomizeString(n int) string {
 	byteArray := make([]rune, n)
 	for i := range byteArray {
@@ -49,12 +55,12 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 func rotate(frequency int, secretDefs []secretDef) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		panic(err.Error())
+		betterPanic(err.Error())
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		betterPanic(err.Error())
 	}
 
 	for {
@@ -126,7 +132,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	var secretDefs = []secretDef{}
-	fmt.Printf("Kubernetes secret rotator.\n")
+	fmt.Printf("\nKubernetes secret rotator.\n")
 
 	secretArg := flag.String("secret", "", "SECRET_NAME,NAMESPACE,KEY,STRATEGY[|SECRET_NAME,NAMESPACE,KEY,STRATEGY]")
 	freqArg := flag.Int("frequency", 60, "Rotation frequency, minutes")
@@ -135,18 +141,18 @@ func main() {
 	frequency := *freqArg
 
 	if frequency < 1 {
-		panic("Invalid frequency specified.")
+		betterPanic("Invalid frequency specified.")
 	}
 
 	sequences := strings.Split(*secretArg, "|")
 	if len(sequences) < 1 {
-		panic("At least one secret sequence has to be specified.")
+		betterPanic("At least one secret sequence has to be specified.")
 	}
 
 	for i := 0; i < len(sequences); i++ {
 		parts := strings.Split(sequences[i], ",")
 		if len(parts) != 4 {
-			panic("Invalid specification for the secret. Valid sequence is SECRET_NAME,NAMESPACE,KEY,STRATEGY.")
+			betterPanic("Invalid specification for the secret. Valid sequence is SECRET_NAME,NAMESPACE,KEY,STRATEGY. For example: tempsecret,default,somekey,retainPrev")
 		}
 		secret := secretDef{name: parts[0], namespace: parts[1], key: parts[2], strategy: parts[3]}
 		secretDefs = append(secretDefs, secret)
