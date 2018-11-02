@@ -22,3 +22,16 @@ Each secret's rotation strategy is specified by the following parameters:
 * `STRATEGY` - new value creation strategy (supported values: `retainPrev`, `omitPrev`). `retainPrev` will save off an old value in the key within the same secret, appending `_PREV` to the name of the key. If `omitPrev` is specified, the old value is not saved.
 
 In case you need to rotate different secrets at different schedules, deploy several instances of `kube-secret-rotator`.
+
+Side note: If you're trying to compile for the first time, please make sure you have the following set:
+
+```sh
+mkdir bin 
+export GOBIN=$GOPATH/bin
+```
+
+And then run
+
+```sh
+go get
+```
